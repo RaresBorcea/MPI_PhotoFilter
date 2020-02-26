@@ -1,0 +1,58 @@
+============== Tema 3 APD ===============
+Borcea Rareș Ioan; Grupa 334CC; 2019-2020
+
+(!) Explicațiile din README trebuie coroborate comentariilor ce însoțesc codul,
+pentru a putea înțelege în totalitate implementarea.
+
+1. Aspecte generale ale implementării
+Programul folosește câte două matrice pentru fiecare tip de imagine: 1 - primară, 2 - 
+secundară, care sunt interschimbate de la un pas la altul în cazul aplicării mai
+multor filtre (imaginea rezultată după aplicarea unui filtru devine intrare pentru
+aplicarea filtrului următor ș.a.). Interschimbarea se realizează pe baza valorii
+variabilei 'isT2forResult'.
+Pentru imaginea color, tip 'P6', s-a construit o structură pentru fiecare pixel al
+matricei, având canalele de culoare RGB tip unsigned char. Pentru a putea fi
+recunoscută de OpenMPI, a fost creat un tip de date MPI derivat, pe baza 'RGBMatrix',
+numit 'mpi_rgbmatrix'.
+Filtrele de aplicat, preluate din parametrii CLI, au fost stocate codificat numeric
+într-un vector, transmis prin Broadcast tuturor celorlalte procese.
+S-a încercat eficientizarea maximă, prin reducerea numerelor de operații de realizat,
+prin vectori precum alreadyRotated, alreadyBcasted, reținerea offset-urilor în vectori
+în locul retrimiterii lor înapoi cu datele procesate etc.
+
+2. Scalarea programului cu numărul de procese
+Procesul MASTER distribuie eficient numărul de linii al matricei de intrare între procese,
+păstrându-și o parte echivalentă de procesat de către sine. 
+În cazul împărțirii inexacte
+a numărului de linii la numărul de procese, restul va fi distribuit - câte o linie în
+plus per proces până la epuizarea liniilor în exces.
+Se calculează, prin urmare, un număr de linii - rowsPerProc - de procesat de către
+fiecare proces și un număr tip offset, pe baza căruia se evidențiază linia din
+imagine de unde începe procesarea pentru procesul curent.
+Fiecare proces aplică filtrul pe liniile de procesat (se trimit 2 linii în plus de
+fiecare dată, pentru valoarea vecinilor de pe liniile superioare, respectiv inferioare)
+și trimite înapoi liniile procesate procesului MASTER, care îmbină rezultatele în
+matricea rezultat. Pentru filtrul următor, această matrice devine matrice intrare.
+
+3. Timpi de execuție
+Imagine alb-negru: rorschach.pgm
+bssembssem:
+	1 proc: 5.87s
+	2 proc: 2.95s
+	3 proc: 2.59s
+	4 proc: 2.2s
+	5 proc: 1.94s
+	6 proc: 1.76s
+	7 proc: 1.62s
+	8 proc: 1.6s
+
+Imagine color: landscape.pnm
+bssembssem:
+	1 proc: 11.22s	
+	2 proc: 6.56s
+	3 proc: 5.08s
+	4 proc: 4.36s
+	5 proc: 3.83s
+	6 proc: 3.44s
+	7 proc: 3.33s
+	8 proc: 3.29s
